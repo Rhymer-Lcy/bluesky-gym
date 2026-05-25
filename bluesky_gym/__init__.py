@@ -44,3 +44,22 @@ def register_envs():
         entry_point="bluesky_gym.envs.merge_env:MergeEnv",
         max_episode_steps=50,
     )
+
+    # environments added in this fork
+    register(
+        id="ConflictResolutionEnv-v0",
+        entry_point="bluesky_gym.envs.conflict_resolution_env:ConflictResolutionEnv",
+        max_episode_steps=1000,
+    )
+
+    register(
+        id="Discrete25DEnv-v0",
+        entry_point="bluesky_gym.envs.discrete_25d_env:Discrete25DEnv",
+        max_episode_steps=300,
+    )
+
+    register(
+        id="MultiAgentEnv-v0",
+        entry_point="bluesky_gym.envs.multi_agent_env:MultiAgentEnv",
+        max_episode_steps=1000,
+    )
