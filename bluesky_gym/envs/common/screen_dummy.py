@@ -1,4 +1,4 @@
-from bluesky.simulation import ScreenIO
+from bluesky.simulation.screenio import ScreenIO
 
 class ScreenDummy(ScreenIO):
     """
