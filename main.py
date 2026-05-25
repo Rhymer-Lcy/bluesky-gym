@@ -1,8 +1,19 @@
-"""
-This file is an example train and test loop for the different environments.
-Selecting different environments is done through setting the 'env_name' variable.
+"""BlueSky-Gym upstream example: minimal train + eval loop for a single environment.
 
-TODO:
+This file originates from the upstream repository (TUDelft-CNS-ATM/bluesky-gym).
+It is kept as a quick smoke-test to verify the installation and demonstrate the
+standard Gymnasium API. Change ``env_name`` / ``algorithm`` to switch environments
+and algorithms.
+
+The thesis experiments live under ``scripts/``, not here:
+
+* ``scripts/train/train_adversarial.py``                protagonist + adversary training
+* ``scripts/eval/run_comparison_experiments.py``        natural vs adversarial comparison
+* ``scripts/report/generate_phase5_comprehensive_report.py``  figure generation
+* automated tests: ``pytest tests/``
+* visualisation demos: ``examples/`` pygame / matplotlib scripts
+
+TODO (upstream):
 * add rgb_array rendering for the different environments to allow saving videos
 """
 
