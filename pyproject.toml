@@ -7,7 +7,6 @@ dependencies = [
     "gymnasium",
     "stable-baselines3",
     "numpy",
-    "bluesky-simulator>=1.0.7",
 ]
 
 authors = [
@@ -36,9 +35,22 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+]
+
 [project.urls]
 Homepage = "https://github.com/TUDelft-CNS-ATM/bluesky-gym"
 Issues = "https://github.com/TUDelft-CNS-ATM/bluesky-gym/issues"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --tb=short"
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+]
 
 [build-system]
 requires = ["hatchling==1.26.3", "hatch-vcs"]
