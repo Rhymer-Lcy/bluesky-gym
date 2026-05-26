@@ -53,7 +53,7 @@ def test_action_space_accepts_three_altitude_choices(env):
 
 
 def test_climb_increases_target_altitude_layer(env):
-    """连续 climb 应使目标高度层达到最大。"""
+    """Repeated climb actions should advance the target altitude layer to the maximum."""
     env.reset()
     info = {}
     for _ in range(len(ALTITUDE_LAYERS) + 2):
@@ -64,9 +64,9 @@ def test_climb_increases_target_altitude_layer(env):
 
 
 def test_descend_decreases_target_altitude_layer(env):
-    """从顶层连续 descend 应使目标高度层达到 0。"""
+    """Repeated descend actions from the top layer should bring the target altitude layer to 0."""
     env.reset()
-    # 先爬到顶层
+    # Climb to top layer first
     for _ in range(len(ALTITUDE_LAYERS) + 2):
         _, _, term, trunc, _ = env.step({"heading": np.array([0.0]), "altitude": 2})
         if term or trunc:
@@ -80,7 +80,7 @@ def test_descend_decreases_target_altitude_layer(env):
 
 
 def test_full_episode_with_random_actions(env):
-    """完整 episode 应能正常终止并提供统计信息。"""
+    """A full episode with random actions should terminate normally and include summary statistics."""
     rng = np.random.default_rng(seed=0)
     env.reset(seed=0)
     info = {}

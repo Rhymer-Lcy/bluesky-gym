@@ -137,7 +137,7 @@ def flatten_action_wrapper(env):
 
 
 def _unwrap_to_multi_agent(env):
-    """透过 gym Wrapper 层取到底层 MultiAgentEnv；若不是则返回 None。"""
+    """Unwrap the gym Wrapper stack to reach the underlying MultiAgentEnv; return None if not found."""
     cur = env
     while hasattr(cur, 'env'):
         if isinstance(cur, MultiAgentEnv):
@@ -147,11 +147,11 @@ def _unwrap_to_multi_agent(env):
 
 
 def evaluate_policy(model, env, n_episodes=100, adversary_policy=None):
-    """评估训练好的 protagonist 策略，可选加入对抗背景机。
+    """Evaluate a trained protagonist policy, optionally with an adversarial background agent.
 
-    返回的 metrics 多了两个字段：
-        - ``importance_weights``：每个 episode 对应的重要性采样权重。
-        - ``conflict_indicator``：该 episode 是否出现冲突。1/0。
+    The returned metrics include two extra fields:
+        - ``importance_weights``: per-episode importance-sampling weight.
+        - ``conflict_indicator``: whether the episode had a conflict. 1/0.
     """
     metrics = {
         'episode_rewards': [],
@@ -172,7 +172,7 @@ def evaluate_policy(model, env, n_episodes=100, adversary_policy=None):
         episode_length = 0
         critical_count = 0
 
-        # 从底层环境拿初始 adversary_obs
+        # Fetch initial adversary_obs from the underlying env
         adv_obs = info.get('adversary_obs', {}) if use_adv else {}
 
         done = False
@@ -185,7 +185,7 @@ def evaluate_policy(model, env, n_episodes=100, adversary_policy=None):
                     'speed':   np.array([action[1]], dtype=np.float64),
                     'altitude': int(np.clip(np.round((action[2] + 1) * 1), 0, 2)),
                 }
-                # 生成对抗动作 + log_prob
+                # Generate adversarial action + log_prob
                 adv_actions = {}
                 for agent_id, observation in adv_obs.items():
                     obs_t = torch.FloatTensor(observation).unsqueeze(0)
@@ -229,13 +229,13 @@ def evaluate_policy(model, env, n_episodes=100, adversary_policy=None):
 
 
 def compute_is_diagnostics(weights):
-    """重要性采样权重的退化诊断。
+    """Diagnose importance-sampling weight degeneracy.
 
-    关键指标：
-        - ``ess``：Kish 有效样本量 ``(Σw)² / Σw²``。
-        - ``ess_ratio``：``ess / N``，<0.1 表明权重严重退化（少数样本主导估计）。
-        - ``max_ratio``：最大权重占总重的比例，>0.3 提示单点占主。
-        - ``degenerate``：上述任一异常即设为 True，在报告中起警示作用。
+    Key metrics:
+        - ``ess``:        Kish effective sample size ``(Σw)² / Σw²``.
+        - ``ess_ratio``:  ``ess / N``; <0.1 indicates severe weight degeneracy.
+        - ``max_ratio``:  fraction of total weight held by the largest sample; >0.3 is a warning sign.
+        - ``degenerate``: True if any of the above thresholds are exceeded.
     """
     weights = np.asarray(weights, dtype=float)
     n = int(weights.size)
@@ -262,7 +262,7 @@ def compute_is_diagnostics(weights):
 
 
 def compute_rate_statistics(indicators, weights=None, target_relative_halfwidth=0.1):
-    """从二值指示算出均值 / 95% 位置的相对半宽 / 达到 target_relative_halfwidth 所需样本量。"""
+    """Compute mean / 95% relative half-width / sample-size needed to reach target_relative_halfwidth from binary indicators."""
     indicators = np.asarray(indicators, dtype=float)
     n = len(indicators)
     if n == 0:
@@ -275,14 +275,14 @@ def compute_rate_statistics(indicators, weights=None, target_relative_halfwidth=
         return {'n': n, 'mean': 0.0, 'std': 0.0, 'relative_halfwidth': float('inf'),
                 'episodes_to_target': float('inf')}
 
-    # 加权均值 & 有效样本量 (Kish ESS)
+    # Weighted mean & effective sample size (Kish ESS)
     mean = float(np.average(indicators, weights=weights))
     ess = float((weights.sum() ** 2) / (np.square(weights).sum()))
     var = float(np.average((indicators - mean) ** 2, weights=weights))
     std = float(np.sqrt(var))
     halfwidth = 1.96 * std / max(np.sqrt(ess), 1e-9)
     rel_half = halfwidth / mean if mean > 1e-9 else float('inf')
-    # 达到 target_relative_halfwidth 所需样本量（假定方差不变）
+    # Minimum sample size to reach target_relative_halfwidth (assuming constant variance)
     if mean > 1e-9 and std > 0:
         n_required = (1.96 * std / (target_relative_halfwidth * mean)) ** 2
     else:
@@ -364,7 +364,7 @@ def run_natural_background_experiment(args):
             'conflict_rate': np.mean([c > 0 for c in eval_metrics['conflicts']]),
             'goal_rate': np.mean(eval_metrics['goal_reached']),
             'avg_critical_ratio': np.mean(eval_metrics['critical_state_ratios']),
-            # 原始冲突率统计（未加权）
+            # Raw conflict rate statistics (unweighted)
             'rate_stats': compute_rate_statistics(eval_metrics['conflict_indicator']),
         },
         'raw_data': eval_metrics
@@ -385,7 +385,7 @@ def run_adversarial_background_experiment(args):
     if args.adversary_model:
         if not os.path.exists(args.adversary_model):
             raise FileNotFoundError(
-                f"--adversary-model 指定的权重不存在: {args.adversary_model}"
+                f"Adversary model checkpoint not found: {args.adversary_model}"
             )
         print(f"Loading adversary policy from {args.adversary_model}...")
         from bluesky_gym.envs.adversarial_policy import AdversarialPolicy
@@ -394,8 +394,8 @@ def run_adversarial_background_experiment(args):
         print("Adversary policy loaded")
     else:
         raise ValueError(
-            "运行对抗背景实验必须提供 --adversary-model。"
-            " 未加载训练好的对抗权重会退化为随机背景。"
+            "--adversary-model is required to run the adversarial background experiment."
+            " Without a trained adversary, the adversary degenerates to random noise."
         )
     
     # Create environment
@@ -463,14 +463,14 @@ def run_adversarial_background_experiment(args):
             'conflict_rate': np.mean([c > 0 for c in eval_metrics['conflicts']]),
             'goal_rate': np.mean(eval_metrics['goal_reached']),
             'avg_critical_ratio': np.mean(eval_metrics['critical_state_ratios']),
-            # 原始（对抗分布下）冲突率统计
+            # Raw conflict rate statistics (under adversarial distribution)
             'rate_stats': compute_rate_statistics(eval_metrics['conflict_indicator']),
-            # 重要性采样加权后的冲突率统计（还原到自然分布）
+            # IS-weighted conflict rate statistics (corrected back to natural distribution)
             'rate_stats_is_weighted': compute_rate_statistics(
                 eval_metrics['conflict_indicator'],
                 weights=eval_metrics['importance_weights'],
             ),
-            # IS 权重退化诊断
+            # IS weight degeneracy diagnostics
             'is_diagnostics': compute_is_diagnostics(eval_metrics['importance_weights']),
         },
         'raw_data': eval_metrics
@@ -519,7 +519,7 @@ def generate_comparison_report(natural_results, adversarial_results, output_path
     print(f"  Conflict Discovery Improvement: {conflict_improvement:+.1%}")
     print(f"  Critical State Improvement: {critical_improvement:+.1%}")
 
-    # ===== 相对半宽 / 所需样本量统计（验证稠密 RL 的样本效率）=====
+    # ===== Relative half-width / sample-size statistics (validate dense RL sample efficiency) =====
     print("\n" + "-" * 60)
     print("STATISTICAL EFFICIENCY (95% CI, target relative half-width = 10%):")
     nat_stats = natural_results['evaluation'].get('rate_stats', {})
@@ -539,7 +539,7 @@ def generate_comparison_report(natural_results, adversarial_results, output_path
         speedup = nat_stats[key_n] / adv_is_stats[key_n]
         print(f"  Sample efficiency speedup (Natural / Adv+IS): {speedup:.1f}x")
 
-    # ===== IS 权重退化诊断 =====
+    # ===== IS weight degeneracy diagnostics =====
     is_diag = adversarial_results['evaluation'].get('is_diagnostics', {})
     print("\n" + "-" * 60)
     print("IMPORTANCE SAMPLING WEIGHT DIAGNOSTICS:")
@@ -557,7 +557,7 @@ def generate_comparison_report(natural_results, adversarial_results, output_path
     else:
         print("  ✓  IS weights healthy.")
 
-    # ===== 无偏性检验：自然真值 vs 对抗+IS 估计 =====
+    # ===== Unbiasedness check: natural ground truth vs adversarial+IS estimate =====
     print("\n" + "-" * 60)
     print("UNBIASEDNESS CHECK (Natural ground truth vs IS-weighted estimate):")
     p_nat = float(nat_stats.get('mean', 0.0))
@@ -606,8 +606,8 @@ def generate_comparison_report(natural_results, adversarial_results, output_path
     combined_results = {
         'timestamp': datetime.now().isoformat(),
         'config': {
-            # 保留场景与关键评估参数，供下游报告脚本
-            # （如 generate_phase5_comprehensive_report.py）反向识别场景
+            # Preserve scenario and key evaluation parameters for downstream reporting scripts
+            # (e.g., generate_phase5_comprehensive_report.py) to identify the scenario
             'scenario': natural_results.get('config', {}).get('scenario'),
             'num_intruders': natural_results.get('config', {}).get('num_intruders'),
             'eval_episodes': natural_results.get('config', {}).get('eval_episodes'),

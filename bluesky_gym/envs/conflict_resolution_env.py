@@ -31,17 +31,15 @@ from bluesky_gym.envs.common.constants import (
     ACTION_FREQUENCY,
     D_HEADING_DEG as D_HEADING,
     D_SPEED_MS as D_SPEED,
+    VERTICAL_TRANSITION_RATE,
+    DISTANCE_MARGIN_KM as DISTANCE_MARGIN,
+    INTRUSION_DISTANCE_NM as INTRUSION_DISTANCE,
+    VERTICAL_MARGIN_M as VERTICAL_MARGIN,
 )
 
 
-# Environment constants (env-specific; shared scalars are imported above)
-DISTANCE_MARGIN = 5  # km
-VERTICAL_TRANSITION_RATE = 5  # m/s
-
-# Conflict detection parameters
+# Environment constants (env-specific)
 NUM_INTRUDERS = 5
-INTRUSION_DISTANCE = 5  # NM
-VERTICAL_MARGIN = 300  # m
 
 # Navigation parameters
 WAYPOINT_DISTANCE_MIN = 100  # km
@@ -379,8 +377,8 @@ class ConflictResolutionEnv(gym.Env):
         # Conflict info
         # tcpa/dcpa are 1-D arrays indexed by confpairs position
         closest_tcpa = 999.0
-        closest_dcpa_nm = 999.0      # 真实 DCPA (NM)
-        closest_range_nm = 999.0     # 当前欧式距离 (NM)
+        closest_dcpa_nm = 999.0      # actual DCPA (NM)
+        closest_range_nm = 999.0     # current Euclidean distance (NM)
         num_conflicts = 0
         closest_alt_diff = 999.0
 
@@ -414,7 +412,7 @@ class ConflictResolutionEnv(gym.Env):
 
         conflict_info = np.array([
             closest_tcpa / 300.0,        # Normalize by 5 minutes
-            closest_dcpa_nm / 10.0,      # Normalize by 10 NM (真实 DCPA)
+            closest_dcpa_nm / 10.0,      # Normalize by 10 NM (actual DCPA)
             num_conflicts / 10.0,
             closest_alt_diff / 3000.0
         ])

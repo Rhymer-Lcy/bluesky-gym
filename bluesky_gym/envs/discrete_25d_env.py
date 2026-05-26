@@ -19,13 +19,15 @@ from bluesky_gym.envs.common.constants import (
     NM2KM,
     ALTITUDE_LAYERS,
     ACTION_FREQUENCY,
+    VERTICAL_TRANSITION_RATE,
+    DISTANCE_MARGIN_KM as DISTANCE_MARGIN,
+    INTRUSION_DISTANCE_NM as INTRUSION_DISTANCE,
+    VERTICAL_MARGIN_M as VERTICAL_MARGIN,
 )
 
 
-# Environment constants (env-specific; shared scalars are imported above)
-DISTANCE_MARGIN = 5  # km
+# Environment constants (env-specific)
 DEFAULT_ALTITUDE_LAYER = 1500  # m (index 2)
-VERTICAL_TRANSITION_RATE = 5  # m/s, vertical speed for altitude changes
 
 # Rewards and penalties
 REACH_REWARD = 1
@@ -36,8 +38,6 @@ ALTITUDE_CHANGE_PENALTY = -0.05  # Small penalty for altitude changes
 # Aircraft parameters
 NUM_INTRUDERS = 5
 NUM_WAYPOINTS = 1
-INTRUSION_DISTANCE = 5  # NM
-VERTICAL_MARGIN = 300  # m, vertical separation for conflict detection
 
 WAYPOINT_DISTANCE_MIN = 100
 WAYPOINT_DISTANCE_MAX = 150

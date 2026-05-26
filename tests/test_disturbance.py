@@ -7,7 +7,7 @@ import pytest
 import bluesky as bs
 
 
-SIM_DURATION_S = 60.0  # 每个 preset 跑 1 分钟即可分辨量级
+SIM_DURATION_S = 60.0  # 1 minute per preset is sufficient to distinguish magnitude levels
 EARTH_RADIUS_M = 6_371_000.0
 
 
@@ -21,7 +21,7 @@ def _great_circle_m(lat1, lon1, lat2, lon2) -> float:
 
 
 def _run_with_preset(preset: str) -> dict:
-    """以指定扰动 preset 跑仿真，返回相对理想轨迹的偏差统计。"""
+    """Run simulation with the given disturbance preset and return deviation statistics from the ideal trajectory."""
     bs.traf.disturb.set_preset(preset)
 
     bs.traf.cre(
@@ -60,7 +60,7 @@ def _run_with_preset(preset: str) -> dict:
 
 
 def test_set_preset_enables_disturbance():
-    """`set_preset('light')` 应启用扰动；`set_preset('none')` 应禁用。"""
+    """`set_preset('light')` should enable disturbance; `set_preset('none')` should disable it."""
     bs.traf.disturb.set_preset("light")
     assert bs.traf.disturb.enabled is True
     bs.traf.disturb.set_preset("none")
@@ -68,7 +68,7 @@ def test_set_preset_enables_disturbance():
 
 
 def test_natural_log_prob_returns_finite_value():
-    """natural_log_prob 在合法输入下应返回有限实数。"""
+    """natural_log_prob should return a finite real number for valid inputs."""
     bs.traf.disturb.set_preset("medium")
     lp = bs.traf.disturb.natural_log_prob(dnorth=1.0, deast=1.0, dspd=0.1, dhdg=0.1, dalt=1.0)
     assert np.isfinite(lp)
@@ -76,17 +76,17 @@ def test_natural_log_prob_returns_finite_value():
 
 @pytest.mark.parametrize("preset", ["none", "light", "medium", "heavy"])
 def test_disturbance_runs_without_error(preset):
-    """所有扰动等级都应能完成短仿真且飞机不会发散。"""
+    """All disturbance presets should complete a short simulation without aircraft divergence."""
     stats = _run_with_preset(preset)
-    assert stats["pos_max"] < 1e6  # 1000 km，远高于任何合理扰动
+    assert stats["pos_max"] < 1e6  # 1000 km — far above any reasonable disturbance
     assert stats["alt_max"] < 5_000.0
 
 
 def test_disturbance_intensity_monotonic():
-    """扰动越强，最大位置偏差应越大（弱断言：none=0 且 heavy 显著大于 light）。
+    """Stronger disturbance should produce larger maximum positional error (weak assertion: none==0 and heavy >> light).
 
-    单次有限步长仿真中 ``light/medium`` 之间可能因随机性出现个别倒挂，故只
-    断言粗粒度的趋势，避免测试随种子漂移而波动。
+    In a single finite-length simulation, ``light/medium`` may occasionally swap due to randomness,
+    so only coarse-grained trend is asserted to avoid test flakiness across seeds.
     """
     np.random.seed(20260501)
     pos_max = {}

@@ -40,7 +40,7 @@ def _random_adversary_actions(num: int, rng: np.random.Generator) -> dict:
 
 
 def test_info_contains_is_critical_state_flag(env):
-    """每一步 info 都应携带 `is_critical_state` 布尔字段。"""
+    """Every step's info dict should carry the `is_critical_state` boolean field."""
     rng = np.random.default_rng(seed=0)
     env.reset(seed=0)
     _, _, _, _, info = env.step(
@@ -52,7 +52,7 @@ def test_info_contains_is_critical_state_flag(env):
 
 
 def test_critical_state_ratio_is_reasonable(env):
-    """对头场景下 100 步内的关键状态比例应 ≤ 80%（防止全部触发）。"""
+    """Critical state ratio over 100 steps in head-on scenario should be ≤ 80% (prevent all steps triggering)."""
     rng = np.random.default_rng(seed=42)
     env.reset(seed=42)
 
@@ -69,5 +69,5 @@ def test_critical_state_ratio_is_reasonable(env):
             break
 
     ratio = critical_count / max(total, 1)
-    # 不强求下界（随机策略未必触发），只断言不会异常爆表
+    # No lower bound required (random policy may never trigger); only assert it doesn't over-fire
     assert 0.0 <= ratio <= 0.80, f"critical state ratio {ratio:.2%} out of bounds"

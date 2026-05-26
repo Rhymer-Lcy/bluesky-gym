@@ -190,18 +190,18 @@ class MultiAgentEnv(ConflictResolutionEnv):
         Returns:
             ``(protagonist_obs, protagonist_reward, terminated, truncated, info)``
         """
-        # 1. 记录上一拍对抗者观测（用于对抗奖励差分计算）
+        # 1. Record previous adversary observations (used for reward delta computation)
         if self.enable_adversarial:
             self.prev_adversary_obs = self._get_adversary_observations()
 
-        # 2. 同步发送 protagonist 与 adversary 的指令到 BlueSky 命令栈
+        # 2. Dispatch protagonist and adversary commands to the BlueSky command stack
         self._get_action(action)
         if self.enable_adversarial and adversary_actions:
             for agent_id, agent_action in adversary_actions.items():
                 if agent_id in bs.traf.id:
                     self._apply_adversary_action(agent_id, agent_action)
 
-        # 3. 统一推进 ACTION_FREQUENCY 个仿真步
+        # 3. Advance the simulation by ACTION_FREQUENCY steps
         for _ in range(ACTION_FREQUENCY):
             bs.sim.step()
             if self.enable_nfz and 'OWNSHIP' in bs.traf.id:
@@ -216,13 +216,13 @@ class MultiAgentEnv(ConflictResolutionEnv):
 
         self.episode_step += 1
 
-        # 4. 计算 protagonist 观测与奖励（在删除飞机之前）
+        # 4. Compute protagonist observation and reward (before aircraft deletion)
         obs = self._get_obs()
         protagonist_reward, terminated = self._get_reward()
         truncated = self.episode_step >= self.max_episode_steps
         info = self._get_info()
 
-        # 5. 收集统计与对抗奖励
+        # 5. Accumulate episode statistics and adversary rewards
         self.episode_reward += protagonist_reward
         if bs.traf.cd.confpairs:
             ownship_pairs = [p for p in bs.traf.cd.confpairs if 'OWNSHIP' in p]
@@ -249,7 +249,7 @@ class MultiAgentEnv(ConflictResolutionEnv):
 
         info['is_critical_state'] = self._is_critical_state()
 
-        # 6. Episode 结束清理（与父类一致）
+        # 6. End-of-episode cleanup (mirrors parent class behaviour)
         if terminated or truncated:
             for acid in list(bs.traf.id):
                 bs.traf.delete(bs.traf.id2idx(acid))
@@ -324,8 +324,8 @@ class MultiAgentEnv(ConflictResolutionEnv):
         relative_hdg = ((prot_hdg - agent_hdg + 180) % 360 - 180) / 180.0  # [-1, 1]
         relative_spd = (prot_spd - agent_spd) / 50.0  # Normalize by typical speed
         
-        # Conflict information (注意 confpairs 元素是 (acid_str, acid_str)，
-        # tcpa/dcpa 是按 pair 位置索引的一维数组)
+        # Conflict information (confpairs elements are (acid_str, acid_str);
+        # tcpa/dcpa are 1-D arrays indexed by pair position)
         tcpa = np.inf
         dcpa = np.inf
         agent_id = bs.traf.id[agent_idx]
@@ -355,8 +355,8 @@ class MultiAgentEnv(ConflictResolutionEnv):
         
         prot_goal_dist = np.clip(prot_goal_dist / 50.0, 0, 1)  # Normalize by 50 nm
         
-        # Current altitude layer (for discrete altitude environment)
-        altitude_layers = [500, 1000, 1500, 2000, 2500]
+        # Current altitude layer index (normalised to [0, 1])
+        altitude_layers = ALTITUDE_LAYERS
         altitude_layer = np.argmin([abs(agent_alt - alt) for alt in altitude_layers]) / 4.0  # [0, 1]
         
         # Construct observation vector
@@ -418,7 +418,7 @@ class MultiAgentEnv(ConflictResolutionEnv):
             if agent_id in bs.traf.id:
                 idx = bs.traf.id.index(agent_id)  # Re-get index in case it changed
                 current_alt = bs.traf.alt[idx]
-                altitude_layers = [500, 1000, 1500, 2000, 2500]
+                altitude_layers = ALTITUDE_LAYERS
                 current_layer = np.argmin([abs(current_alt - alt) for alt in altitude_layers])
                 
                 if altitude_action == 0:  # Down
@@ -497,7 +497,7 @@ class MultiAgentEnv(ConflictResolutionEnv):
                 except ValueError:
                     pass
             
-            # 4. Collision penalty —— 用 confpairs 位置索引取 dcpa
+            # 4. Collision penalty — look up dcpa by confpairs position index
             for k, pair in enumerate(bs.traf.cd.confpairs):
                 if agent_id in pair and k < len(bs.traf.cd.dcpa):
                     dcpa_nm = float(bs.traf.cd.dcpa[k]) / NM2M
@@ -538,20 +538,21 @@ class MultiAgentEnv(ConflictResolutionEnv):
         natural_log_prob: Optional[float] = None,
         action: Optional[Dict[str, np.ndarray]] = None,
     ) -> float:
-        """累计重要性采样权重 ``w = \u03c0_natural(a|s) / \u03c0_adversarial(a|s)``。
+        """Accumulate importance-sampling weight ``w = π_natural(a|s) / π_adversarial(a|s)``.
 
-        该权重用于将在对抗环境中估计的衡量映射回自然分布，从而保证
-        对真实冲突/失效率的估计理论上无偏（Feng et al., Nature 2023）。
+        This weight maps evaluations estimated under the adversarial distribution back
+        to the natural distribution, ensuring theoretically unbiased estimates of the
+        true conflict/failure rate (Feng et al., Nature 2023).
 
         Args:
-            agent_id: 对抗代理 ID。
-            adversarial_log_prob: 对抗策略下动作的 log概率。
-            natural_log_prob: 自然分布下动作的 log概率；若缺省则从
-                ``action`` 与 ``bs.traf.disturb`` 推算。
-            action: ``{'heading': ..., 'speed': ..., 'altitude': ...}``。
+            agent_id: Adversarial agent ID.
+            adversarial_log_prob: Log-probability of the action under the adversarial policy.
+            natural_log_prob: Log-probability under the natural distribution; if omitted,
+                inferred from ``action`` and ``bs.traf.disturb``.
+            action: ``{'heading': ..., 'speed': ..., 'altitude': ...}``.
 
         Returns:
-            本步重要性权重（已计入累积量）。
+            Importance weight for this step (also accumulated internally).
         """
         if not self.importance_sampling:
             return 1.0
@@ -563,7 +564,7 @@ class MultiAgentEnv(ConflictResolutionEnv):
                 natural_log_prob = self._action_natural_log_prob(action)
 
         log_ratio = float(natural_log_prob) - float(adversarial_log_prob)
-        # 限幅避免数值爆炸
+        # Clip to avoid numerical overflow
         step_ratio = float(np.exp(np.clip(log_ratio, -10.0, 10.0)))
 
         prev = self.importance_ratios.get(agent_id, 1.0)
@@ -572,14 +573,16 @@ class MultiAgentEnv(ConflictResolutionEnv):
         return step_ratio
 
     def _action_natural_log_prob(self, action: Dict[str, np.ndarray]) -> float:
-        """把背景机输出的 (heading_delta, speed_delta) 当作对名义航迹的扰动量，
-        调用 ``bs.traf.disturb.natural_log_prob`` 返回自然分布下的 log概率。“高度动作”为
-        离散变量，正常巡航以 ``maintain`` 为众数，简化为在 ``maintain`` 上赋
-        较高概率（从而令改变高度的 IS 权重偏小）。”"""
+        """Interpret the adversary's (heading_delta, speed_delta) output as perturbations
+        to the nominal trajectory, and return the log-probability under the natural
+        (undisturbed) distribution via ``bs.traf.disturb.natural_log_prob``.  The altitude
+        action is discrete; normal cruise favours ``maintain``, so it is assigned a high
+        prior probability (which down-weights IS ratios for altitude changes).
+        """
         if not hasattr(bs.traf, 'disturb'):
             return 0.0
 
-        # 连续动作 → 实际偏移量
+        # Continuous actions -> physical offsets
         h_norm = float(action['heading'][0] if hasattr(action['heading'], '__len__') else action['heading'])
         s_norm = float(action['speed'][0] if hasattr(action['speed'], '__len__') else action['speed'])
         dhdg = h_norm * D_HEADING_DEG
@@ -587,7 +590,7 @@ class MultiAgentEnv(ConflictResolutionEnv):
 
         log_p = bs.traf.disturb.natural_log_prob(dhdg=dhdg, dspd=dspd)
 
-        # 离散高度动作：maintain=0.9, up/down 各 0.05 作为自然先验
+        # Discrete altitude action: maintain=0.9, up/down each 0.05 as natural prior
         altitude_action = int(action['altitude'])
         prior = (0.05, 0.9, 0.05)
         log_p += float(np.log(prior[altitude_action])) if 0 <= altitude_action < 3 else 0.0
@@ -620,13 +623,13 @@ class MultiAgentEnv(ConflictResolutionEnv):
         return stats
     
     def _is_critical_state(self) -> bool:
-        """判定当前是否为“关键状态”。
+        """Determine whether the current state is a 'critical state'.
 
-        任一条件成立即返回 True：
-        - 距 protagonist 平面距离 < ``CRITICAL_DIST_NM``。
-        - 存在涉及 protagonist 的官方冲突检测对。
-        - 表示官方 TCPA 中最小值 < ``CRITICAL_TCPA_S``。
-        - 任一背景机与 protagonist 接近率导出的 TAU < ``CRITICAL_TAU_S``。
+        Returns True if any of the following conditions holds:
+        - Horizontal distance to protagonist < ``CRITICAL_DIST_NM``.
+        - At least one official conflict pair involves protagonist.
+        - Minimum official TCPA < ``CRITICAL_TCPA_S``.
+        - Closing-rate-derived TAU for any background aircraft < ``CRITICAL_TAU_S``.
         """
         if 'OWNSHIP' not in bs.traf.id:
             return False
@@ -637,7 +640,7 @@ class MultiAgentEnv(ConflictResolutionEnv):
         )
         own_gs, own_hdg = bs.traf.gs[own_idx], bs.traf.hdg[own_idx]
 
-        # 1) 直接平面距离
+        # 1) Horizontal distance check
         for i, acid in enumerate(bs.traf.id):
             if acid == 'OWNSHIP':
                 continue
@@ -647,17 +650,17 @@ class MultiAgentEnv(ConflictResolutionEnv):
             if dist_nm < CRITICAL_DIST_NM:
                 return True
 
-        # 2) 官方冲突对
+        # 2) Official conflict pairs
         if any('OWNSHIP' in pair for pair in bs.traf.cd.confpairs):
             return True
 
-        # 3) 官方 TCPA
+        # 3) Official TCPA
         if len(bs.traf.cd.tcpa) > 0:
             min_tcpa = float(np.min(np.abs(bs.traf.cd.tcpa)))
             if min_tcpa < CRITICAL_TCPA_S:
                 return True
 
-        # 4) 备用 TAU判判
+        # 4) Fallback TAU estimate
         for intruder_id in bs.traf.id:
             if intruder_id == 'OWNSHIP':
                 continue

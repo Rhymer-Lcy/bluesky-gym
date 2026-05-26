@@ -411,7 +411,7 @@ def train_adversary(
             # Get next adversary observations
             next_adversary_obs = info.get('adversary_obs', {})
 
-            # Dense RL: 仅在关键状态上进行梯度更新，非关键步跳过。
+            # Dense RL: update gradients only on critical states; skip non-critical steps.
             is_critical = bool(info.get('is_critical_state', False))
             if is_critical:
                 for agent_id in env.adversarial_agents:

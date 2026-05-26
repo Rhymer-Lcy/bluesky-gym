@@ -67,21 +67,21 @@ def test_multiple_zones_and_aircraft_tracking():
     bs.traf.cre("AC003", actype="A320", aclat=52.35, aclon=4.1, achdg=90, acalt=3000, acspd=250)
     assert bs.traf.ntraf == 3
 
-    # AC001 在 ZONE_A 内
+    # AC001 is inside ZONE_A
     v1 = bs.traf.nfz.check_aircraft("AC001", bs.traf.lat[0], bs.traf.lon[0], bs.traf.alt[0])
     assert v1, "AC001 should be inside ZONE_A"
 
-    # AC002 在 ZONE_B 内
+    # AC002 is inside ZONE_B
     v2 = bs.traf.nfz.check_aircraft("AC002", bs.traf.lat[1], bs.traf.lon[1], bs.traf.alt[1])
     assert v2, "AC002 should be inside ZONE_B"
 
-    # AC003 在 ZONE_C 内
+    # AC003 is inside ZONE_C
     v3 = bs.traf.nfz.check_aircraft("AC003", bs.traf.lat[2], bs.traf.lon[2], bs.traf.alt[2])
     assert v3, "AC003 should be inside ZONE_C"
 
 
 def test_violation_count_accumulates_over_time():
-    """对同一飞机重复 check 应累积违规次数。"""
+    """Repeated check calls for the same aircraft should accumulate violation counts."""
     bs.traf.nfz.create_circular_zone("ZONE_X", 52.0, 4.0, 5, 0, 5000)
     bs.traf.cre("AC001", actype="A320", aclat=52.0, aclon=4.0, achdg=0, acalt=1000, acspd=200)
 

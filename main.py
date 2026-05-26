@@ -13,8 +13,8 @@ The thesis experiments live under ``scripts/``, not here:
 * automated tests: ``pytest tests/``
 * visualisation demos: ``examples/`` pygame / matplotlib scripts
 
-TODO (upstream):
-* add rgb_array rendering for the different environments to allow saving videos
+NOTE (upstream gap):
+* rgb_array rendering is not yet implemented in upstream environments; video saving is unsupported
 """
 
 import gymnasium as gym

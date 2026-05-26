@@ -40,7 +40,7 @@ def test_environment_creation_and_reset(config):
 
 
 def test_observation_vector_layout():
-    """观测向量分段长度应严格匹配文档约定。"""
+    """Observation vector segment lengths must strictly match the documented layout."""
     env = ConflictResolutionEnv(
         scenario_type="head_on", num_intruders=5,
         disturbance_level="light", enable_nfz=True,
@@ -48,7 +48,7 @@ def test_observation_vector_layout():
     try:
         obs, _ = env.reset()
         assert obs.shape == (_expected_obs_size(5),)
-        # ego 6 维归一化后绝对值不应离 1 太远
+        # ego 6 dims: normalised values should not be far from 1
         assert np.max(np.abs(obs[0:6])) <= 5.0
     finally:
         env.close()
@@ -76,7 +76,7 @@ def test_step_returns_valid_transition(action):
 
 
 def test_full_episode_terminates():
-    """随机策略运行至 max_episode_steps 应正常终止。"""
+    """A random policy should reach max_episode_steps and terminate normally."""
     rng = np.random.default_rng(seed=0)
     env = ConflictResolutionEnv(scenario_type="head_on", num_intruders=3)
     try:

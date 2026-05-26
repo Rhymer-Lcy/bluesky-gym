@@ -127,7 +127,7 @@ def test_extreme_actions_do_not_break_simulation(env):
 
 
 def test_importance_ratio_update(env, policy):
-    """`update_importance_ratio` 调用后，`info['importance_ratios']` 应包含每个对手。"""
+    """After calling `update_importance_ratio`, `info['importance_ratios']` should contain every adversary."""
     rng = np.random.default_rng(0)
     _, info = env.reset()
 
