@@ -1,24 +1,25 @@
-# 演示脚本 (examples/)
+# Demo scripts (examples/)
 
-本目录提供面向人类用户的可视化与交互演示。所有脚本可独立运行，不依赖 pytest。
+This directory contains human-readable visualisation and interactive demos.
+All scripts run standalone and do not depend on pytest.
 
-> 自动化测试请使用根目录 `tests/`，运行 `pytest -v`。
+> For automated testing use the root-level `tests/` directory (`pytest -v`).
 
-## 演示脚本一览
+## Script overview
 
-| 脚本 | 演示内容 | 运行方式 |
+| Script | What it demonstrates | How to run |
 |---|---|---|
-| `disturbance_visualization.py` | 不同 `disturbance preset` 下飞机轨迹偏离量的 matplotlib 对比图 | `python examples/disturbance_visualization.py` |
-| `disturbance_pygame_demo.py`   | 实时 pygame 可视化扰动对单机航迹的影响（可切换 preset） | `python examples/disturbance_pygame_demo.py` |
-| `scenarios_pygame_demo.py`     | 循环展示 4 类典型冲突场景（head-on / crossing / merging / overtaking） | `python examples/scenarios_pygame_demo.py` |
-| `no_fly_zone_pygame_demo.py`   | 圆形 + 多边形禁飞区与多机违规检测的实时渲染 | `python examples/no_fly_zone_pygame_demo.py` |
+| `disturbance_visualization.py` | matplotlib comparison of trajectory deviation under each `disturbance preset` | `python examples/disturbance_visualization.py` |
+| `disturbance_pygame_demo.py` | Real-time pygame visualisation of disturbance effects on a single aircraft (switchable preset) | `python examples/disturbance_pygame_demo.py` |
+| `scenarios_pygame_demo.py` | Cyclic display of the 4 canonical conflict scenarios (head-on / crossing / merging / overtaking) | `python examples/scenarios_pygame_demo.py` |
+| `no_fly_zone_pygame_demo.py` | Real-time rendering of circular + polygonal NFZs and per-aircraft violation detection | `python examples/no_fly_zone_pygame_demo.py` |
 
-## 通用要求
+## Requirements
 
-- 已通过 `pip install -e .` 安装本仓库与 `bluesky-simulator`
-- pygame 演示需要桌面环境（无头服务器请改为 `tests/` 中的 pytest 验证）
+- The package and `bluesky-simulator` must be installed via `pip install -e .`
+- pygame demos require a desktop environment (headless servers: use `pytest -v` in `tests/` instead)
 
-## 控制方式（pygame 演示）
+## Controls (pygame demos)
 
-- 关闭窗口 / `ESC`：退出
-- 详细按键说明见各脚本顶部 docstring
+- Close window / `ESC`: quit
+- For detailed key bindings see the docstring at the top of each script
