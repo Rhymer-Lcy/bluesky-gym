@@ -36,6 +36,7 @@ from bluesky_gym.envs.common.constants import (
     INTRUSION_DISTANCE_NM as INTRUSION_DISTANCE,
     VERTICAL_MARGIN_M as VERTICAL_MARGIN,
 )
+from bluesky_gym.envs.common.utils import get_altitude_layer_index
 
 
 # Environment constants (env-specific)
@@ -353,7 +354,7 @@ class ConflictResolutionEnv(gym.Env):
         hdg = bs.traf.hdg[ac_idx] / 180.0  # Normalize to [-1, 1]
         spd = bs.traf.gs[ac_idx] / 200.0  # Normalize to ~[0, 1]
         
-        self.current_altitude_layer_idx = self._get_altitude_layer_index(bs.traf.alt[ac_idx])
+        self.current_altitude_layer_idx = get_altitude_layer_index(bs.traf.alt[ac_idx])
         alt_layer = self.current_altitude_layer_idx / (len(ALTITUDE_LAYERS) - 1)
         
         ego_state = np.array([lat, lon, alt, hdg, spd, alt_layer])
@@ -477,12 +478,12 @@ class ConflictResolutionEnv(gym.Env):
             intruder_states
         ])
         
-        return obs.astype(np.float64)
-
-    def _get_altitude_layer_index(self, altitude):
-        """ Get closest altitude layer index """
-        distances = [abs(altitude - layer_alt) for layer_alt in ALTITUDE_LAYERS]
-        return np.argmin(distances)
+        obs = obs.astype(np.float64)
+        assert obs.shape == self.observation_space.shape, (
+            f"obs shape {obs.shape} does not match "
+            f"observation_space {self.observation_space.shape}"
+        )
+        return obs
 
     def _get_action(self, action):
         """ Execute action """

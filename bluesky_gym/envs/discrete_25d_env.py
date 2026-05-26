@@ -24,6 +24,7 @@ from bluesky_gym.envs.common.constants import (
     INTRUSION_DISTANCE_NM as INTRUSION_DISTANCE,
     VERTICAL_MARGIN_M as VERTICAL_MARGIN,
 )
+from bluesky_gym.envs.common.utils import get_altitude_layer_index
 
 
 # Environment constants (env-specific)
@@ -241,7 +242,7 @@ class Discrete25DEnv(gym.Env):
         ac_alt = bs.traf.alt[ac_idx]
         
         # Update current altitude layer based on actual altitude
-        self.current_altitude_layer_idx = self._get_altitude_layer_index(ac_alt)
+        self.current_altitude_layer_idx = get_altitude_layer_index(ac_alt)
 
         # Get intruder information
         for i in range(NUM_INTRUDERS):
@@ -276,7 +277,7 @@ class Discrete25DEnv(gym.Env):
                 # Vertical info
                 int_alt = bs.traf.alt[int_idx]
                 altitude_difference.append(int_alt - ac_alt)
-                int_alt_layer_idx = self._get_altitude_layer_index(int_alt)
+                int_alt_layer_idx = get_altitude_layer_index(int_alt)
                 intruder_altitude_layer.append(float(int_alt_layer_idx))
             else:
                 # Intruder deleted, fill with safe values
@@ -319,11 +320,6 @@ class Discrete25DEnv(gym.Env):
             "cos_drift": np.array(cos_drift, dtype=np.float64),
             "sin_drift": np.array(sin_drift, dtype=np.float64)
         }
-
-    def _get_altitude_layer_index(self, altitude):
-        """ Get the closest altitude layer index for given altitude """
-        distances = [abs(altitude - layer_alt) for layer_alt in ALTITUDE_LAYERS]
-        return np.argmin(distances)
 
     def _get_action(self, action):
         """ Execute action: heading change + altitude layer change """
