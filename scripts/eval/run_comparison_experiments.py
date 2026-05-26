@@ -17,6 +17,7 @@ import os
 import sys
 import json
 import argparse
+import logging
 import numpy as np
 from datetime import datetime
 from pathlib import Path
@@ -31,6 +32,8 @@ from stable_baselines3.common.callbacks import BaseCallback
 from bluesky_gym.envs.conflict_resolution_env import ConflictResolutionEnv
 from bluesky_gym.envs.multi_agent_env import MultiAgentEnv
 from bluesky_gym.utils.wrappers import FlattenDictActionWrapper
+
+_log = logging.getLogger(__name__)
 
 
 class ExperimentMetricsCallback(BaseCallback):
@@ -199,7 +202,7 @@ def evaluate_policy(model, env, n_episodes=100, adversary_policy=None):
         metrics['importance_weights'].append(ep_w)
 
         if (ep + 1) % 20 == 0:
-            print(f"  Evaluated {ep + 1}/{n_episodes} episodes")
+            _log.info("  Evaluated %d/%d episodes", ep + 1, n_episodes)
 
     return metrics
 
@@ -275,9 +278,9 @@ def compute_rate_statistics(indicators, weights=None, target_relative_halfwidth=
 
 def run_natural_background_experiment(args):
     """Run experiment with natural background."""
-    print("\n" + "=" * 70)
-    print("EXPERIMENT 1: Natural Background (Random Intruders)")
-    print("=" * 70)
+    _log.info("=" * 70)
+    _log.info("EXPERIMENT 1: Natural Background (Random Intruders)")
+    _log.info("=" * 70)
     
     # Create environment
     base_env = create_natural_env(
@@ -291,7 +294,7 @@ def run_natural_background_experiment(args):
     callback = ExperimentMetricsCallback(eval_freq=1000)
     
     # Train
-    print(f"\nTraining PPO for {args.train_steps} steps...")
+    _log.info("Training PPO for %d steps...", args.train_steps)
     model = PPO(
         "MlpPolicy",
         env,
@@ -309,11 +312,14 @@ def run_natural_background_experiment(args):
     # Save model
     model_path = f"models/comparison_natural_{args.experiment_id}"
     os.makedirs(model_path, exist_ok=True)
-    model.save(f"{model_path}/final_model")
-    print(f"Model saved to {model_path}")
-    
+    try:
+        model.save(f"{model_path}/final_model")
+        _log.info("Model saved to %s", model_path)
+    except OSError as exc:
+        _log.warning("Could not save model to %s: %s", model_path, exc)
+
     # Evaluate
-    print(f"\nEvaluating for {args.eval_episodes} episodes...")
+    _log.info("Evaluating for %d episodes...", args.eval_episodes)
     eval_metrics = evaluate_policy(model, env, n_episodes=args.eval_episodes)
     
     # Combine metrics
@@ -352,9 +358,9 @@ def run_natural_background_experiment(args):
 
 def run_adversarial_background_experiment(args):
     """Run experiment with adversarial background."""
-    print("\n" + "=" * 70)
-    print("EXPERIMENT 2: Adversarial Background (Trained Adversaries)")
-    print("=" * 70)
+    _log.info("=" * 70)
+    _log.info("EXPERIMENT 2: Adversarial Background (Trained Adversaries)")
+    _log.info("=" * 70)
     
     # Load adversary policy if available
     adversary_policy = None
@@ -363,11 +369,11 @@ def run_adversarial_background_experiment(args):
             raise FileNotFoundError(
                 f"Adversary model checkpoint not found: {args.adversary_model}"
             )
-        print(f"Loading adversary policy from {args.adversary_model}...")
+        _log.info("Loading adversary policy from %s...", args.adversary_model)
         from bluesky_gym.envs.adversarial_policy import AdversarialPolicy
         adversary_policy = AdversarialPolicy(obs_dim=12, device='cpu')
         adversary_policy.load(args.adversary_model)
-        print("Adversary policy loaded")
+        _log.info("Adversary policy loaded")
     else:
         raise ValueError(
             "--adversary-model is required to run the adversarial background experiment."
@@ -390,7 +396,7 @@ def run_adversarial_background_experiment(args):
     callback = ExperimentMetricsCallback(eval_freq=1000)
     
     # Train protagonist with adversarial background
-    print(f"\nTraining PPO for {args.train_steps} steps with adversarial background...")
+    _log.info("Training PPO for %d steps with adversarial background...", args.train_steps)
     model = PPO(
         "MlpPolicy",
         wrapped_env,
@@ -408,11 +414,14 @@ def run_adversarial_background_experiment(args):
     # Save model
     model_path = f"models/comparison_adversarial_{args.experiment_id}"
     os.makedirs(model_path, exist_ok=True)
-    model.save(f"{model_path}/final_model")
-    print(f"Model saved to {model_path}")
-    
+    try:
+        model.save(f"{model_path}/final_model")
+        _log.info("Model saved to %s", model_path)
+    except OSError as exc:
+        _log.warning("Could not save model to %s: %s", model_path, exc)
+
     # Evaluate
-    print(f"\nEvaluating for {args.eval_episodes} episodes...")
+    _log.info("Evaluating for %d episodes...", args.eval_episodes)
     eval_metrics = evaluate_policy(model, wrapped_env, n_episodes=args.eval_episodes, adversary_policy=adversary_policy)
     
     # Combine metrics
@@ -458,12 +467,12 @@ def run_adversarial_background_experiment(args):
 
 def generate_comparison_report(natural_results, adversarial_results, output_path):
     """Generate comparison report."""
-    print("\n" + "=" * 70)
-    print("COMPARISON RESULTS")
-    print("=" * 70)
-    
-    print("\n{:<30} {:>15} {:>15}".format("Metric", "Natural", "Adversarial"))
-    print("-" * 60)
+    _log.info("=" * 70)
+    _log.info("COMPARISON RESULTS")
+    _log.info("=" * 70)
+
+    _log.info("{:<30} {:>15} {:>15}".format("Metric", "Natural", "Adversarial"))
+    _log.info("-" * 60)
     
     metrics = [
         ('Avg Episode Reward', 'avg_reward'),
@@ -479,89 +488,106 @@ def generate_comparison_report(natural_results, adversarial_results, output_path
         adv_val = adversarial_results['evaluation'].get(key, 0)
         
         if 'rate' in key.lower() or 'ratio' in key.lower():
-            print("{:<30} {:>14.1%} {:>14.1%}".format(name, nat_val, adv_val))
+            _log.info("{:<30} {:>14.1%} {:>14.1%}".format(name, nat_val, adv_val))
         else:
-            print("{:<30} {:>15.2f} {:>15.2f}".format(name, nat_val, adv_val))
+            _log.info("{:<30} {:>15.2f} {:>15.2f}".format(name, nat_val, adv_val))
     
     # Calculate improvements
-    print("\n" + "-" * 60)
-    print("ANALYSIS:")
-    
-    conflict_improvement = (adversarial_results['evaluation']['conflict_rate'] - 
+    _log.info("-" * 60)
+    _log.info("ANALYSIS:")
+
+    conflict_improvement = (adversarial_results['evaluation']['conflict_rate'] -
                            natural_results['evaluation']['conflict_rate'])
-    critical_improvement = (adversarial_results['evaluation']['avg_critical_ratio'] - 
+    critical_improvement = (adversarial_results['evaluation']['avg_critical_ratio'] -
                            natural_results['evaluation']['avg_critical_ratio'])
-    
-    print(f"  Conflict Discovery Improvement: {conflict_improvement:+.1%}")
-    print(f"  Critical State Improvement: {critical_improvement:+.1%}")
+
+    _log.info("  Conflict Discovery Improvement: %+.1%%", conflict_improvement * 100)
+    _log.info("  Critical State Improvement: %+.1%%", critical_improvement * 100)
 
     # ===== Relative half-width / sample-size statistics (validate dense RL sample efficiency) =====
-    print("\n" + "-" * 60)
-    print("STATISTICAL EFFICIENCY (95% CI, target relative half-width = 10%):")
+    _log.info("-" * 60)
+    _log.info("STATISTICAL EFFICIENCY (95%% CI, target relative half-width = 10%%):")
     nat_stats = natural_results['evaluation'].get('rate_stats', {})
     adv_stats = adversarial_results['evaluation'].get('rate_stats', {})
     adv_is_stats = adversarial_results['evaluation'].get('rate_stats_is_weighted', {})
     key_n = 'episodes_to_relative_halfwidth_10%'
-    print(f"  [Natural ]  rate={nat_stats.get('mean', 0):.4f}  "
-          f"rel_halfwidth={nat_stats.get('relative_halfwidth_95', float('inf')):.3f}  "
-          f"episodes_to_10%={nat_stats.get(key_n, float('inf')):.0f}")
-    print(f"  [Adv     ]  rate={adv_stats.get('mean', 0):.4f}  "
-          f"rel_halfwidth={adv_stats.get('relative_halfwidth_95', float('inf')):.3f}  "
-          f"episodes_to_10%={adv_stats.get(key_n, float('inf')):.0f}")
-    print(f"  [Adv+IS  ]  rate={adv_is_stats.get('mean', 0):.4f}  "
-          f"rel_halfwidth={adv_is_stats.get('relative_halfwidth_95', float('inf')):.3f}  "
-          f"episodes_to_10%={adv_is_stats.get(key_n, float('inf')):.0f}  (IS-weighted -> natural distribution)")
+    _log.info(
+        "  [Natural ]  rate=%.4f  rel_halfwidth=%.3f  episodes_to_10%%=%.0f",
+        nat_stats.get('mean', 0),
+        nat_stats.get('relative_halfwidth_95', float('inf')),
+        nat_stats.get(key_n, float('inf')),
+    )
+    _log.info(
+        "  [Adv     ]  rate=%.4f  rel_halfwidth=%.3f  episodes_to_10%%=%.0f",
+        adv_stats.get('mean', 0),
+        adv_stats.get('relative_halfwidth_95', float('inf')),
+        adv_stats.get(key_n, float('inf')),
+    )
+    _log.info(
+        "  [Adv+IS  ]  rate=%.4f  rel_halfwidth=%.3f  episodes_to_10%%=%.0f"
+        "  (IS-weighted -> natural distribution)",
+        adv_is_stats.get('mean', 0),
+        adv_is_stats.get('relative_halfwidth_95', float('inf')),
+        adv_is_stats.get(key_n, float('inf')),
+    )
     if nat_stats.get(key_n, float('inf')) > 0 and adv_is_stats.get(key_n, float('inf')) > 0:
         speedup = nat_stats[key_n] / adv_is_stats[key_n]
-        print(f"  Sample efficiency speedup (Natural / Adv+IS): {speedup:.1f}x")
+        _log.info("  Sample efficiency speedup (Natural / Adv+IS): %.1fx", speedup)
 
     # ===== IS weight degeneracy diagnostics =====
     is_diag = adversarial_results['evaluation'].get('is_diagnostics', {})
-    print("\n" + "-" * 60)
-    print("IMPORTANCE SAMPLING WEIGHT DIAGNOSTICS:")
-    print(f"  N={is_diag.get('n', 0)}  ESS={is_diag.get('ess', 0):.1f}  "
-          f"ESS/N={is_diag.get('ess_ratio', 0):.3f}  "
-          f"max_ratio={is_diag.get('max_ratio', 0):.3f}")
-    print(f"  weight stats: min={is_diag.get('min', 0):.3e}  "
-          f"median={is_diag.get('median', 0):.3e}  "
-          f"mean={is_diag.get('mean', 0):.3e}  "
-          f"max={is_diag.get('max', 0):.3e}")
+    _log.info("-" * 60)
+    _log.info("IMPORTANCE SAMPLING WEIGHT DIAGNOSTICS:")
+    _log.info(
+        "  N=%d  ESS=%.1f  ESS/N=%.3f  max_ratio=%.3f",
+        is_diag.get('n', 0), is_diag.get('ess', 0),
+        is_diag.get('ess_ratio', 0), is_diag.get('max_ratio', 0),
+    )
+    _log.info(
+        "  weight stats: min=%.3e  median=%.3e  mean=%.3e  max=%.3e",
+        is_diag.get('min', 0), is_diag.get('median', 0),
+        is_diag.get('mean', 0), is_diag.get('max', 0),
+    )
     if is_diag.get('degenerate', False):
-        print("  ⚠  IS weights are degenerate (ESS/N<0.1 or max_ratio>0.3).")
-        print("     The IS-weighted estimate may have inflated variance;"
-              " consider lowering adversary entropy or increasing eval episodes.")
+        _log.warning("  IS weights are degenerate (ESS/N<0.1 or max_ratio>0.3).")
+        _log.warning(
+            "  The IS-weighted estimate may have inflated variance;"
+            " consider lowering adversary entropy or increasing eval episodes."
+        )
     else:
-        print("  ✓  IS weights healthy.")
+        _log.info("  IS weights healthy.")
 
     # ===== Unbiasedness check: natural ground truth vs adversarial+IS estimate =====
-    print("\n" + "-" * 60)
-    print("UNBIASEDNESS CHECK (Natural ground truth vs IS-weighted estimate):")
+    _log.info("-" * 60)
+    _log.info("UNBIASEDNESS CHECK (Natural ground truth vs IS-weighted estimate):")
     p_nat = float(nat_stats.get('mean', 0.0))
     p_adv_is = float(adv_is_stats.get('mean', 0.0))
     bias = p_adv_is - p_nat
     nat_hw = float(nat_stats.get('relative_halfwidth_95', float('inf'))) * abs(p_nat)
     adv_is_hw = float(adv_is_stats.get('relative_halfwidth_95', float('inf'))) * abs(p_adv_is)
     combined_hw = float(np.sqrt(nat_hw ** 2 + adv_is_hw ** 2))
-    print(f"  p_natural          = {p_nat:.4f}  ± {nat_hw:.4f} (95% CI half-width)")
-    print(f"  p_adversarial+IS   = {p_adv_is:.4f}  ± {adv_is_hw:.4f} (95% CI half-width)")
-    print(f"  bias (adv_IS - nat) = {bias:+.4f}   tolerance ±{combined_hw:.4f}")
+    _log.info("  p_natural          = %.4f  \u00b1 %.4f (95%% CI half-width)", p_nat, nat_hw)
+    _log.info("  p_adversarial+IS   = %.4f  \u00b1 %.4f (95%% CI half-width)", p_adv_is, adv_is_hw)
+    _log.info("  bias (adv_IS - nat) = %+.4f   tolerance \u00b1%.4f", bias, combined_hw)
     if abs(bias) <= combined_hw:
-        print("  ✓  IS-weighted estimate is statistically consistent with the natural ground truth.")
+        _log.info("  IS-weighted estimate is statistically consistent with the natural ground truth.")
         unbiased_ok = True
     else:
-        print("  ⚠  IS-weighted estimate deviates from the natural ground truth"
-              " beyond the combined 95% CI; check adversary policy or sample size.")
+        _log.warning(
+            "  IS-weighted estimate deviates from the natural ground truth"
+            " beyond the combined 95%% CI; check adversary policy or sample size."
+        )
         unbiased_ok = False
 
     if adversarial_results['evaluation']['conflict_rate'] > natural_results['evaluation']['conflict_rate']:
-        print("  ✓ Adversarial background increases conflict discovery")
+        _log.info("  Adversarial background increases conflict discovery")
     else:
-        print("  ⚠ Adversarial background did not increase conflict discovery")
-    
+        _log.warning("  Adversarial background did not increase conflict discovery")
+
     if adversarial_results['evaluation']['avg_critical_ratio'] > natural_results['evaluation']['avg_critical_ratio']:
-        print("  ✓ Adversarial background increases critical state exposure")
+        _log.info("  Adversarial background increases critical state exposure")
     else:
-        print("  ⚠ Adversarial background did not increase critical states")
+        _log.warning("  Adversarial background did not increase critical states")
     
     # Save results - extract only serializable data
     def make_serializable(obj):
@@ -621,8 +647,8 @@ def generate_comparison_report(natural_results, adversarial_results, output_path
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     with open(output_path, 'w') as f:
         json.dump(combined_results, f, indent=2)
-    
-    print(f"\nResults saved to {output_path}")
+
+    _log.info("Results saved to %s", output_path)
     
     return combined_results
 
@@ -646,16 +672,22 @@ def main():
     
     args = parser.parse_args()
     args.experiment_id = datetime.now().strftime("%Y%m%d_%H%M%S")
-    
-    print("=" * 70)
-    print("STAGE 5: COMPARISON EXPERIMENTS")
-    print("Natural Background vs Adversarial Background")
-    print("=" * 70)
-    print(f"\nExperiment ID: {args.experiment_id}")
-    print(f"Scenario: {args.scenario}")
-    print(f"Intruders: {args.num_intruders}")
-    print(f"Training steps: {args.train_steps}")
-    print(f"Evaluation episodes: {args.eval_episodes}")
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s  %(levelname)-8s  %(message)s",
+        datefmt="%H:%M:%S",
+    )
+
+    _log.info("=" * 70)
+    _log.info("STAGE 5: COMPARISON EXPERIMENTS")
+    _log.info("Natural Background vs Adversarial Background")
+    _log.info("=" * 70)
+    _log.info("Experiment ID: %s", args.experiment_id)
+    _log.info("Scenario: %s", args.scenario)
+    _log.info("Intruders: %d", args.num_intruders)
+    _log.info("Training steps: %d", args.train_steps)
+    _log.info("Evaluation episodes: %d", args.eval_episodes)
     
     # Set seed
     np.random.seed(args.seed)
@@ -676,9 +708,9 @@ def main():
         output_path = f"results/comparison_{args.experiment_id}/results.json"
         generate_comparison_report(natural_results, adversarial_results, output_path)
     
-    print("\n" + "=" * 70)
-    print("EXPERIMENTS COMPLETE")
-    print("=" * 70)
+    _log.info("=" * 70)
+    _log.info("EXPERIMENTS COMPLETE")
+    _log.info("=" * 70)
 
 
 if __name__ == "__main__":
