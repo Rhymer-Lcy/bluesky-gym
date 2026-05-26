@@ -22,11 +22,14 @@ Features:
 import os
 import sys
 import argparse
+import logging
 import numpy as np
 import torch
 from datetime import datetime
 from typing import Dict, List, Tuple, Optional
 from pathlib import Path
+
+_log = logging.getLogger(__name__)
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -170,10 +173,10 @@ def train_protagonist(
     Returns:
         Trained PPO model
     """
-    print(f"Training protagonist policy...")
-    print(f"  Scenario: {scenario_type}")
-    print(f"  Intruders: {num_intruders}")
-    print(f"  Total timesteps: {total_timesteps:,}")
+    _log.info("Training protagonist policy...")
+    _log.info("  Scenario: %s", scenario_type)
+    _log.info("  Intruders: %d", num_intruders)
+    _log.info("  Total timesteps: %d", total_timesteps)
     
     # Create directories
     os.makedirs(model_dir, exist_ok=True)
@@ -241,10 +244,13 @@ def train_protagonist(
     
     # Save final model to model_dir
     final_model_path = os.path.join(model_dir, "final_model")
-    model.save(final_model_path)
-    print(f"\nTraining complete!")
-    print(f"  Model saved to: {final_model_path}.zip")
-    print(f"  Logs saved to: {log_dir}")
+    try:
+        model.save(final_model_path)
+        _log.info("Training complete!")
+        _log.info("  Model saved to: %s.zip", final_model_path)
+    except OSError as exc:
+        _log.warning("Training complete! Could not save model to %s: %s", final_model_path, exc)
+    _log.info("  Logs saved to: %s", log_dir)
     
     env.close()
     eval_env.close()
@@ -281,13 +287,13 @@ def train_adversary(
     import torch.optim as optim
     from torch.utils.tensorboard import SummaryWriter
     
-    print(f"\nTraining adversarial policy...")
-    print(f"  Loading protagonist from: {protagonist_model_path}")
-    print(f"  Total timesteps: {total_timesteps:,}")
+    _log.info("Training adversarial policy...")
+    _log.info("  Loading protagonist from: %s", protagonist_model_path)
+    _log.info("  Total timesteps: %d", total_timesteps)
     
     # Load protagonist model
     protagonist = PPO.load(protagonist_model_path, device=device)
-    print(f"  Protagonist loaded")
+    _log.info("  Protagonist loaded")
     
     # Create multi-agent environment
     env = MultiAgentEnv(
@@ -306,7 +312,7 @@ def train_adversary(
         device=device
     )
     
-    print(adversarial_policy.info())
+    _log.info("%s", adversarial_policy.info())
     
     # Setup optimizer
     optimizer = optim.Adam(
@@ -319,7 +325,7 @@ def train_adversary(
     writer = SummaryWriter(log_dir)
     
     # Training loop
-    print(f"\nStarting adversarial training...")
+    _log.info("Starting adversarial training...")
     episode_count = 0
     step_count = 0
     best_adversary_reward = -np.inf
@@ -440,10 +446,13 @@ def train_adversary(
         
         # Print progress
         if episode_count % 10 == 0:
-            print(f"Episode {episode_count}, Steps {step_count}/{total_timesteps}")
-            print(f"  Adversary reward: {avg_adversary_reward:.2f}")
-            print(f"  Protagonist reward: {episode_reward_protagonist:.2f}")
-            print(f"  Critical states: {episode_critical_states}/{episode_steps} ({critical_ratio:.2%})")
+            _log.info(
+                "Episode %d, Steps %d/%d | adversary_reward=%.2f "
+                "protagonist_reward=%.2f critical_states=%d/%d (%.2f%%)",
+                episode_count, step_count, total_timesteps,
+                avg_adversary_reward, episode_reward_protagonist,
+                episode_critical_states, episode_steps, critical_ratio * 100,
+            )
         
         # Save best model
         if avg_adversary_reward > best_adversary_reward:
@@ -457,10 +466,10 @@ def train_adversary(
     final_policy_path = os.path.join(model_dir, "final_adversarial_policy.pt")
     adversarial_policy.save(final_policy_path)
     
-    print(f"\nAdversarial training complete!")
-    print(f"  Final policy saved to: {final_policy_path}")
-    print(f"  Best policy saved to: {best_policy_path}")
-    print(f"  Logs saved to: {log_dir}")
+    _log.info("Adversarial training complete!")
+    _log.info("  Final policy saved to: %s", final_policy_path)
+    _log.info("  Best policy saved to: %s", best_policy_path)
+    _log.info("  Logs saved to: %s", log_dir)
     
     env.close()
     
@@ -494,13 +503,12 @@ def alternating_training(
         num_intruders: Number of intruder aircraft
         device: Device to train on
     """
-    print("=" * 70)
-    print("ALTERNATING ADVERSARIAL TRAINING")
-    print("=" * 70)
-    print(f"Iterations: {n_iterations}")
-    print(f"Protagonist timesteps per iter: {protagonist_timesteps_per_iter:,}")
-    print(f"Adversary timesteps per iter: {adversary_timesteps_per_iter:,}")
-    print()
+    _log.info("=" * 70)
+    _log.info("ALTERNATING ADVERSARIAL TRAINING")
+    _log.info("=" * 70)
+    _log.info("Iterations: %d", n_iterations)
+    _log.info("Protagonist timesteps per iter: %d", protagonist_timesteps_per_iter)
+    _log.info("Adversary timesteps per iter: %d", adversary_timesteps_per_iter)
 
     os.makedirs(model_dir, exist_ok=True)
     os.makedirs(log_dir, exist_ok=True)
@@ -509,9 +517,9 @@ def alternating_training(
     adversary_policy = None
 
     for iteration in range(n_iterations):
-        print(f"\n{'='*70}")
-        print(f"ITERATION {iteration + 1}/{n_iterations}")
-        print(f"{'='*70}")
+        _log.info("=" * 70)
+        _log.info("ITERATION %d/%d", iteration + 1, n_iterations)
+        _log.info("=" * 70)
 
         # Train protagonist
         prot_model_dir = os.path.join(model_dir, f"iter_{iteration + 1}", "protagonist")
@@ -542,11 +550,11 @@ def alternating_training(
                 device=device
             )
 
-    print(f"\n{'='*70}")
-    print("ALTERNATING TRAINING COMPLETE")
-    print(f"{'='*70}")
-    print(f"Models saved in: {model_dir}")
-    print(f"Logs   saved in: {log_dir}")
+    _log.info("=" * 70)
+    _log.info("ALTERNATING TRAINING COMPLETE")
+    _log.info("=" * 70)
+    _log.info("Models saved in: %s", model_dir)
+    _log.info("Logs   saved in: %s", log_dir)
 
 
 def main():
@@ -582,6 +590,13 @@ def main():
     
     args = parser.parse_args()
     
+    # Configure root logging so _log messages appear on stdout
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(message)s",
+        datefmt="%H:%M:%S",
+    )
+    
     # Set random seeds
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
@@ -597,11 +612,9 @@ def main():
     os.makedirs(model_dir, exist_ok=True)
     os.makedirs(log_dir, exist_ok=True)
     
-    print(f"Model directory: {model_dir}")
-    print(f"Log directory: {log_dir}")
-    print(f"Device: {args.device}")
-    print(f"Random seed: {args.seed}")
-    print()
+    _log.info("Model directory: %s", model_dir)
+    _log.info("Log directory:   %s", log_dir)
+    _log.info("Device: %s  seed: %d", args.device, args.seed)
     
     # Run training based on mode
     if args.mode == 'protagonist':
@@ -617,7 +630,7 @@ def main():
     
     elif args.mode == 'adversary':
         if args.protagonist_model is None:
-            print("ERROR: --protagonist-model required for adversary training")
+            _log.error("--protagonist-model required for adversary training")
             sys.exit(1)
         
         train_adversary(
