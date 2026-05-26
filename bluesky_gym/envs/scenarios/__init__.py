@@ -1,5 +1,9 @@
 """ Scenario generators for BlueSky-Gym conflict resolution environments. """
 
+from __future__ import annotations
+
+from typing import Type
+
 from .base_scenario import BaseScenario
 from .head_on_scenario import HeadOnScenario
 from .crossing_scenario import CrossingScenario
@@ -9,35 +13,37 @@ from .overtaking_scenario import OvertakingScenario
 __all__ = [
     'BaseScenario',
     'HeadOnScenario',
-    'CrossingScenario', 
+    'CrossingScenario',
     'MergingScenario',
     'OvertakingScenario',
-    'get_scenario'
+    'get_scenario',
 ]
 
 
-def get_scenario(scenario_type: str):
-    """
-    Factory function to get scenario class by type.
-    
-    Arguments:
-    - scenario_type: Type of scenario ('head_on', 'crossing', 'merging', 'overtaking')
-    
+def get_scenario(scenario_type: str) -> Type[BaseScenario]:
+    """Return the scenario *class* (un-instantiated) for *scenario_type*.
+
+    Args:
+        scenario_type: One of ``'head_on'``, ``'crossing'``,
+            ``'merging'``, or ``'overtaking'`` (case-insensitive).
+
     Returns:
-    - Scenario class (not instantiated)
+        The concrete :class:`BaseScenario` subclass.
+
+    Raises:
+        ValueError: If *scenario_type* is not one of the supported values.
     """
-    scenarios = {
+    scenarios: dict[str, Type[BaseScenario]] = {
         'head_on': HeadOnScenario,
         'crossing': CrossingScenario,
         'merging': MergingScenario,
-        'overtaking': OvertakingScenario
+        'overtaking': OvertakingScenario,
     }
-    
-    scenario_type = scenario_type.lower()
-    if scenario_type not in scenarios:
+
+    key = scenario_type.lower()
+    if key not in scenarios:
         raise ValueError(
-            f"Unknown scenario type: {scenario_type}. "
+            f"Unknown scenario type: {scenario_type!r}. "
             f"Available types: {list(scenarios.keys())}"
         )
-    
-    return scenarios[scenario_type]
+    return scenarios[key]

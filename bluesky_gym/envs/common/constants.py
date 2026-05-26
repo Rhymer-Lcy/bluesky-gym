@@ -4,6 +4,10 @@ Centralises altitude layers, separation thresholds and action magnitudes so that
 ConflictResolutionEnv, Discrete25DEnv and MultiAgentEnv all use identical values.
 """
 
+# Aircraft identifiers
+OWNSHIP_ID = 'OWNSHIP'          # call sign used for the controlled aircraft
+INTRUDER_PREFIX = 'INTRUDER_'   # prefix for auto-generated intruder call signs
+
 # Unit conversions
 NM2KM = 1.852  # 1 nautical mile in km
 NM2M = 1852.0

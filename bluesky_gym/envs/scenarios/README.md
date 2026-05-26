@@ -178,8 +178,8 @@ bs.traf.creconfs(
 3. **Conflict detection latency**: allow at least 50 simulation steps before
    checking for active conflicts.
 
-## 📚 参考资料
+## References
 
-- [BlueSky 文档](https://github.com/TUDelft-CNS-ATM/bluesky/wiki)
-- BlueSky 内置 `creconfs()` 接口与冲突检测逻辑
-- 本仓库 `examples/` 下的场景验证脚本与 `scripts/` 下的实验脚本
+- [BlueSky documentation](https://github.com/TUDelft-CNS-ATM/bluesky/wiki)
+- BlueSky built-in `creconfs()` interface and conflict detection logic
+- Scenario validation scripts in `examples/` and experiment scripts in `scripts/`
