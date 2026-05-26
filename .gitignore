@@ -6,3 +6,11 @@ images/
 logs/
 models/
 dist/
+results/
+docs_personal/
+
+# Local environment config (copy .env.template -> .env.local and fill in values)
+.env.local
+
+# Pipeline run log (written to logs/ at runtime)
+retrain_console.log
