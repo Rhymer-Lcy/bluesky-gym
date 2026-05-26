@@ -1,93 +1,103 @@
 # BlueSky-Gym
-A gymnasium style library for standardized Reinforcement Learning research in Air Traffic Management developed in Python.
-Built on [BlueSky](https://github.com/TUDelft-CNS-ATM/bluesky) and The Farama Foundation's [Gymnasium](https://github.com/Farama-Foundation/Gymnasium)
+
+A Gymnasium-compatible reinforcement learning library for Air Traffic Management research, built on [BlueSky](https://github.com/TUDelft-CNS-ATM/bluesky) and the Farama Foundation's [Gymnasium](https://github.com/Farama-Foundation/Gymnasium).
 
 <p align="center">
     <img src="https://github.com/user-attachments/assets/6ae83579-78af-4cb7-8096-3a10af54a5c5" width=50% height=50%><br/>
-    <em>An example trained agent attempting the merge environment available in BlueSky-Gym.</em>
+    <em>A trained agent in the merge environment.</em>
 </p>
 
-For a complete list of the currently available environments click [here](bluesky_gym/envs/README.md)
+This repository is a research fork of [TUDelft-CNS-ATM/bluesky-gym](https://github.com/TUDelft-CNS-ATM/bluesky-gym). Additions relative to the upstream release:
+
+- **Extended BlueSky submodule** — `bluesky/traffic/` augmented with `disturbance.py` (stochastic wind disturbance model) and `no_fly_zone.py` (dynamic no-fly zone enforcement).
+- **Additional environments** — `ConflictResolutionEnv-v0`, `Discrete25DEnv-v0`, `MultiAgentEnv-v0`.
+- **Training and evaluation scripts** — adversarial co-evolutionary training, multi-scenario comparison experiments, and automated report generation (see [`scripts/README.md`](scripts/README.md)).
+
+For the full list of available environments, see [`bluesky_gym/envs/README.md`](bluesky_gym/envs/README.md).
+
+---
 
 ## Installation
 
-`pip install bluesky-gym`
+### Standard (upstream PyPI package)
 
-Note that the pip package is `bluesky-gym`, for usage however, import as `bluesky_gym`.
+```bash
+pip install bluesky-gym
+```
 
-### 二次开发版安装（毕设环境）
+The PyPI package name is `bluesky-gym`; the importable module name is `bluesky_gym`.
 
-本仓库在 `bluesky/` 子目录下内置了 BlueSky 的定制分支（含 `traffic/disturbance.py`、
-`traffic/no_fly_zone.py` 等二次开发模块）。**必须**安装该子模块版本而不是官方
-`pip install bluesky-simulator`，否则 `bs.traf.disturb` / `bs.traf.nfz` 将不可用。
+### From source (this fork)
+
+This fork bundles a customised BlueSky branch as a Git submodule under `bluesky/`. The submodule **must** be installed instead of the upstream `bluesky-simulator` package; without it, `bs.traf.disturb` and `bs.traf.nfz` will be unavailable at runtime.
 
 ```bash
 git clone --recurse-submodules https://github.com/Rhymer-Lcy/bluesky-gym.git
 cd bluesky-gym
 
-# 1) 安装定制版 BlueSky（必须，子模块）
-cd bluesky
-pip install -e .
-cd ..
+# 1. Install the bundled BlueSky submodule (required)
+pip install -e bluesky/
 
-# 2) 以可编辑模式安装 bluesky-gym 本体
+# 2. Install bluesky-gym in editable mode
 pip install -e .
-
-# 3) 注册自定义环境
-python -c "import bluesky_gym; bluesky_gym.register_envs()"
 ```
 
-新增的对抗式测试环境：`ConflictResolutionEnv-v0`、`Discrete25DEnv-v0`、`MultiAgentEnv-v0`。
+---
 
 ## Usage
-Using the environments follows the standard API from Gymnasium, an example of which is given below:
+
+All environments conform to the standard Gymnasium API:
 
 ```python
 import gymnasium as gym
 import bluesky_gym
+
 bluesky_gym.register_envs()
 
 env = gym.make('MergeEnv-v0', render_mode='human')
-
 obs, info = env.reset()
 done = truncated = False
+
 while not (done or truncated):
-    action = ... # Your agent code here
+    action = ...  # agent policy
     obs, reward, done, truncated, info = env.step(action)
 ```
 
-Additionally you can directly use algorithms from standardized libraries such as [Stable-Baselines3](https://stable-baselines3.readthedocs.io/en/master/) or [RLlib](https://docs.ray.io/en/latest/rllib/index.html) to train a model:
+Integration with [Stable-Baselines3](https://stable-baselines3.readthedocs.io/en/master/) or [RLlib](https://docs.ray.io/en/latest/rllib/index.html) follows the same pattern:
 
 ```python
 import gymnasium as gym
 import bluesky_gym
 from stable_baselines3 import DDPG
+
 bluesky_gym.register_envs()
 
 env = gym.make('MergeEnv-v0', render_mode=None)
-model = DDPG("MultiInputPolicy",env)
-model.learn(total_timesteps=2e6)
-model.save()
+model = DDPG("MultiInputPolicy", env)
+model.learn(total_timesteps=2_000_000)
+model.save("ddpg_merge")
 ```
 
-For more info, please refer to the [workshop slides](https://docs.google.com/presentation/d/1Jpwdrx__OMdgHWtQ1yCVQyxsdDFk2ieX/edit?usp=drive_link&ouid=109800667545002770848&rtpof=true&sd=true) that provide additional information on BlueSky-Gym and how to use it for your own needs.
+For background on the library design and environment construction, refer to the [workshop slides](https://docs.google.com/presentation/d/1Jpwdrx__OMdgHWtQ1yCVQyxsdDFk2ieX/edit?usp=drive_link&ouid=109800667545002770848&rtpof=true&sd=true).
 
-## Contributing and Assistance
-If you would like to contribute to BlueSky-Gym or need assistance in setting up or creating your own environments, do not hesitate to open an issue or reach out to one of us via the BlueSky-Gym [Discord](https://discord.gg/s7CdxcSX).
-Additionally you can have a look at the [roadmap](https://github.com/TUDelft-CNS-ATM/bluesky-gym/issues/24) for inspiration on where you can contribute and to get an idea of the direction BlueSky-Gym is going.
+---
 
+## Contributing
 
-## Citing
+Contributions and assistance requests are welcome via GitHub Issues or the BlueSky-Gym [Discord](https://discord.gg/s7CdxcSX). The upstream [roadmap](https://github.com/TUDelft-CNS-ATM/bluesky-gym/issues/24) outlines planned development directions.
 
-If you use BlueSky-Gym in your work, please cite it using:
+---
+
+## Citation
+
 ```bibtex
 @misc{bluesky-gym,
-  author = {Groot, DJ and Leto, G and Vlaskin, A and Moec, A and Ellerbroek, J},
-  title = {BlueSky-Gym: Reinforcement Learning Environments for Air Traffic Applications},
-  year = {2024},
+  author  = {Groot, DJ and Leto, G and Vlaskin, A and Moec, A and Ellerbroek, J},
+  title   = {BlueSky-Gym: Reinforcement Learning Environments for Air Traffic Applications},
+  year    = {2024},
   journal = {SESAR Innovation Days 2024},
 }
 ```
 
-List of publications & preprints using `BlueSky-Gym` (please open a pull request to add missing entries):
-*   _missing entry_
+Publications using BlueSky-Gym (open a pull request to add entries):
+- _none listed_
