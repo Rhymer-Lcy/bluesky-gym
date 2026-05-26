@@ -1,3 +1,5 @@
+import warnings
+
 import gymnasium as gym
 import numpy as np
 
@@ -28,5 +30,9 @@ class NoisyObservationWrapper(gym.Wrapper):
                 for key, value in observation.items()
                 }
         else:
-            print('observation not an numpy array or dictionary, return observation unaltered')
+            warnings.warn(
+                'NoisyObservationWrapper: observation is neither ndarray nor dict; '
+                'returning unaltered.',
+                stacklevel=2,
+            )
             return observation
