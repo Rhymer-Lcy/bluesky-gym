@@ -65,7 +65,6 @@ class AdversarialActor(nn.Module):
         self.altitude_actions = altitude_actions
         self.log_std_min = log_std_min
         self.log_std_max = log_std_max
-        self.log_std_max = log_std_max
         
         # Shared feature extractor
         layers = []
