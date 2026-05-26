@@ -152,7 +152,7 @@ class Discrete25DEnv(gym.Env):
         self._get_action(action)
 
         # Run simulation steps
-        for i in range(ACTION_FREQUENCY):
+        for _ in range(ACTION_FREQUENCY):
             bs.sim.step()
             if self.render_mode == "human":
                 observation = self._get_obs()

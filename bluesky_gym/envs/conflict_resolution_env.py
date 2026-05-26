@@ -214,7 +214,7 @@ class ConflictResolutionEnv(gym.Env):
         self._get_action(action)
 
         # Run simulation
-        for i in range(ACTION_FREQUENCY):
+        for _ in range(ACTION_FREQUENCY):
             bs.sim.step()
             
             # Check NFZ violations during simulation
