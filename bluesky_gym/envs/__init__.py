@@ -7,3 +7,4 @@ from bluesky_gym.envs.merge_env import *
 from bluesky_gym.envs.sector_cr_env import *
 from bluesky_gym.envs.discrete_25d_env import *
 from bluesky_gym.envs.conflict_resolution_env import *
+from bluesky_gym.envs.multi_agent_env import *
