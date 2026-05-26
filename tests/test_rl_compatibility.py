@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 
 from bluesky_gym.envs.conflict_resolution_env import ConflictResolutionEnv
+from bluesky_gym.utils.wrappers import FlattenDictActionWrapper
 
 
 _HAS_SB3 = importlib.util.find_spec("stable_baselines3") is not None
@@ -58,28 +59,11 @@ def test_sampled_action_in_action_space(env):
 
 # ---- custom flatten wrapper (for SB3) -------------------------------------------
 
-class _FlattenDictActionWrapper(gym.Wrapper):
-    """Flatten Dict action space to Box(3,) so SB3 PPO can drive the environment directly."""
-
-    def __init__(self, base_env):
-        super().__init__(base_env)
-        from gymnasium import spaces
-        self.action_space = spaces.Box(-1, 1, shape=(3,), dtype=np.float32)
-        self.observation_space = base_env.observation_space
-
-    def step(self, action):
-        dict_action = {
-            "heading": np.array([action[0]], dtype=np.float64),
-            "speed": np.array([action[1]], dtype=np.float64),
-            "altitude": int(np.clip(np.round((action[2] + 1.0)), 0, 2)),
-        }
-        return self.env.step(dict_action)
-
 
 def test_flatten_dict_action_wrapper_round_trip():
     base = ConflictResolutionEnv(scenario_type="merging", num_intruders=3)
     try:
-        wrapped = _FlattenDictActionWrapper(base)
+        wrapped = FlattenDictActionWrapper(base)
         wrapped.reset()
         flat_action = wrapped.action_space.sample()
         obs, reward, terminated, truncated, info = wrapped.step(flat_action)
@@ -101,7 +85,7 @@ def test_stablebaselines3_short_training_and_save(tmp_path):
         disturbance_level="none", enable_nfz=False,
     )
     try:
-        env = _FlattenDictActionWrapper(base)
+        env = FlattenDictActionWrapper(base)
         check_env(env, warn=False)
 
         vec_env = DummyVecEnv([lambda: env])

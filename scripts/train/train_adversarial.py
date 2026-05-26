@@ -39,29 +39,8 @@ from stable_baselines3.common.logger import configure
 
 from bluesky_gym.envs.multi_agent_env import MultiAgentEnv
 from bluesky_gym.envs.adversarial_policy import AdversarialPolicy
+from bluesky_gym.utils.wrappers import FlattenDictActionWrapper
 import gymnasium as gym
-
-
-class FlattenDictActionWrapper(gym.Wrapper):
-    """Wrapper to convert Dict action space to Box for SB3."""
-    def __init__(self, env):
-        super().__init__(env)
-        from gymnasium import spaces
-        # Flatten: [heading(1), speed(1), altitude(1)]
-        self.action_space = spaces.Box(-1, 1, shape=(3,), dtype=np.float32)
-        self.observation_space = env.observation_space
-    
-    def reset(self, **kwargs):
-        return self.env.reset(**kwargs)
-    
-    def step(self, action):
-        # Convert flat action to Dict
-        dict_action = {
-            "heading": np.array([action[0]], dtype=np.float64),
-            "speed": np.array([action[1]], dtype=np.float64),
-            "altitude": int(np.clip(np.round((action[2] + 1) * 1), 0, 2))
-        }
-        return self.env.step(dict_action, adversary_actions=None)
 
 
 class AdversarialTrainingCallback(BaseCallback):

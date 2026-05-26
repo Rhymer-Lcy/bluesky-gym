@@ -30,6 +30,7 @@ from stable_baselines3.common.callbacks import BaseCallback
 
 from bluesky_gym.envs.conflict_resolution_env import ConflictResolutionEnv
 from bluesky_gym.envs.multi_agent_env import MultiAgentEnv
+from bluesky_gym.utils.wrappers import FlattenDictActionWrapper
 
 
 class ExperimentMetricsCallback(BaseCallback):
@@ -109,31 +110,6 @@ def create_adversarial_env(scenario_type='head_on', num_intruders=3, adversary_m
         importance_sampling=True,  # track IS weights during evaluation
     )
     return env
-
-
-def flatten_action_wrapper(env):
-    """Wrap environment for SB3 compatibility."""
-    import gymnasium as gym
-    from gymnasium import spaces
-    
-    class FlattenDictActionWrapper(gym.Wrapper):
-        def __init__(self, env):
-            super().__init__(env)
-            self.action_space = spaces.Box(-1, 1, shape=(3,), dtype=np.float32)
-            self.observation_space = env.observation_space
-        
-        def reset(self, **kwargs):
-            return self.env.reset(**kwargs)
-        
-        def step(self, action):
-            dict_action = {
-                "heading": np.array([action[0]], dtype=np.float64),
-                "speed": np.array([action[1]], dtype=np.float64),
-                "altitude": int(np.clip(np.round((action[2] + 1) * 1), 0, 2))
-            }
-            return self.env.step(dict_action)
-    
-    return FlattenDictActionWrapper(env)
 
 
 def _unwrap_to_multi_agent(env):
@@ -309,7 +285,7 @@ def run_natural_background_experiment(args):
         num_intruders=args.num_intruders,
         disturbance=args.disturbance
     )
-    env = flatten_action_wrapper(base_env)
+    env = FlattenDictActionWrapper(base_env)
     
     # Create callback
     callback = ExperimentMetricsCallback(eval_freq=1000)
@@ -408,7 +384,7 @@ def run_adversarial_background_experiment(args):
     )
     
     # Wrap for SB3 (protagonist only)
-    wrapped_env = flatten_action_wrapper(env)
+    wrapped_env = FlattenDictActionWrapper(env)
     
     # Create callback
     callback = ExperimentMetricsCallback(eval_freq=1000)
