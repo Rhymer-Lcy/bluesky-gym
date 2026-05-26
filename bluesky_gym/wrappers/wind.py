@@ -27,15 +27,13 @@ class WindFieldWrapper(gym.Wrapper):
         observation, info = self.env.reset(**kwargs)
         bs.traf.wind.addpointvne(self.lat, self.lon, self.vnorth, self.veast, self.alt)
 
-        if self.augment_obs: 
+        if self.augment_obs:
             wind_u, wind_v = self._get_wind_observation()
             wind = {
                 "wind_u": np.array([wind_u]),
                 "wind_v": np.array([wind_v])
             }
-            observation = {**observation, **wind} 
-            # import code
-            # code.interact(local=locals())
+            observation = {**observation, **wind}
 
         return observation, info
     
@@ -53,7 +51,7 @@ class WindFieldWrapper(gym.Wrapper):
         return observation, reward, done, truncated, info
     
     def _get_wind_observation(self):
-        acidx = bs.traf.id2idx('kl001')
+        acidx = bs.traf.id2idx('KL001')
         lat, lon, alt = bs.traf.lat[acidx], bs.traf.lon[acidx], bs.traf.alt[acidx]
         wind_n, wind_e = bs.traf.wind.getdata(lat,lon,alt)
 
