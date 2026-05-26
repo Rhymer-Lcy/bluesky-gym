@@ -7,8 +7,10 @@ typical of same-route overtaking situations.
 import numpy as np
 import bluesky as bs
 
+from .base_scenario import BaseScenario
 
-class OvertakingScenario:
+
+class OvertakingScenario(BaseScenario):
     """Generate overtaking conflicts with configurable parameters.
 
     Args:

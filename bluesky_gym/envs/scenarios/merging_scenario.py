@@ -7,8 +7,10 @@ typical of route merge points or approach procedures.
 import numpy as np
 import bluesky as bs
 
+from .base_scenario import BaseScenario
 
-class MergingScenario:
+
+class MergingScenario(BaseScenario):
     """Generate merging conflicts with configurable parameters.
 
     Args:

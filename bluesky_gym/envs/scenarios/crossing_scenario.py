@@ -7,8 +7,10 @@ representing a classic crossing conflict.
 import numpy as np
 import bluesky as bs
 
+from .base_scenario import BaseScenario
 
-class CrossingScenario:
+
+class CrossingScenario(BaseScenario):
     """Generate crossing conflicts with configurable parameters.
 
     Args:

@@ -7,8 +7,10 @@ representing the highest-severity conflict type.
 import numpy as np
 import bluesky as bs
 
+from .base_scenario import BaseScenario
 
-class HeadOnScenario:
+
+class HeadOnScenario(BaseScenario):
     """Generate head-on conflicts with configurable parameters.
 
     Args:

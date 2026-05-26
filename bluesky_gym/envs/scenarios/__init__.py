@@ -1,11 +1,13 @@
 """ Scenario generators for BlueSky-Gym conflict resolution environments. """
 
+from .base_scenario import BaseScenario
 from .head_on_scenario import HeadOnScenario
 from .crossing_scenario import CrossingScenario
 from .merging_scenario import MergingScenario
 from .overtaking_scenario import OvertakingScenario
 
 __all__ = [
+    'BaseScenario',
     'HeadOnScenario',
     'CrossingScenario', 
     'MergingScenario',
