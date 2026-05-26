@@ -1,3 +1,6 @@
+import glob
+import os
+
 import numpy as np
 import matplotlib
 matplotlib.use('Agg')
@@ -7,11 +10,23 @@ from matplotlib import rcParams
 rcParams['font.family'] = ['DejaVu Sans']
 rcParams['axes.unicode_minus'] = False
 
+
+def _find_latest_eval(scenario: str) -> str:
+    """Return the evaluations.npz path for the latest training run of *scenario*."""
+    matches = sorted(glob.glob(f'logs/protagonist_{scenario}_*/evaluations.npz'))
+    if not matches:
+        raise FileNotFoundError(
+            f"No evaluations.npz found for scenario '{scenario}'. "
+            "Run training first (scripts/run_full_retrain.ps1) or update the path manually."
+        )
+    return matches[-1]
+
+
 scenarios = {
-    'Crossing':   'logs/protagonist_crossing_20260502_013551/evaluations.npz',
-    'Overtaking': 'logs/protagonist_overtaking_20260502_022649/evaluations.npz',
-    'Head-on':    'logs/protagonist_head_on_20260502_011236/evaluations.npz',
-    'Merging':    'logs/protagonist_merging_20260502_020457/evaluations.npz',
+    'Crossing':   _find_latest_eval('crossing'),
+    'Overtaking': _find_latest_eval('overtaking'),
+    'Head-on':    _find_latest_eval('head_on'),
+    'Merging':    _find_latest_eval('merging'),
 }
 
 colors  = ['#1f77b4', '#2ca02c', '#d62728', '#8c6d31']
@@ -47,5 +62,6 @@ ax.grid(True, alpha=0.3)
 plt.tight_layout()
 
 out = 'figures/fig_training_curves.png'
+os.makedirs('figures', exist_ok=True)
 plt.savefig(out, dpi=200, bbox_inches='tight')
 print('Saved:', out)
