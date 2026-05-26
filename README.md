@@ -15,6 +15,30 @@ For a complete list of the currently available environments click [here](bluesky
 
 Note that the pip package is `bluesky-gym`, for usage however, import as `bluesky_gym`.
 
+### 二次开发版安装（毕设环境）
+
+本仓库在 `bluesky/` 子目录下内置了 BlueSky 的定制分支（含 `traffic/disturbance.py`、
+`traffic/no_fly_zone.py` 等二次开发模块）。**必须**安装该子模块版本而不是官方
+`pip install bluesky-simulator`，否则 `bs.traf.disturb` / `bs.traf.nfz` 将不可用。
+
+```bash
+git clone --recurse-submodules https://github.com/Rhymer-Lcy/bluesky-gym.git
+cd bluesky-gym
+
+# 1) 安装定制版 BlueSky（必须，子模块）
+cd bluesky
+pip install -e .
+cd ..
+
+# 2) 以可编辑模式安装 bluesky-gym 本体
+pip install -e .
+
+# 3) 注册自定义环境
+python -c "import bluesky_gym; bluesky_gym.register_envs()"
+```
+
+新增的对抗式测试环境：`ConflictResolutionEnv-v0`、`Discrete25DEnv-v0`、`MultiAgentEnv-v0`。
+
 ## Usage
 Using the environments follows the standard API from Gymnasium, an example of which is given below:
 
